@@ -10,7 +10,7 @@ sys.path.extend(['/moondream'])
 
 # append project directory to path so predict.py can be imported
 sys.path.append('.')
-from predict import MODEL_NAME, MODEL_CACHE, TOKEN_CACHE
+from predict import MODEL_NAME, MODEL_CACHE
 
 # Make cache folders
 if not os.path.exists(MODEL_CACHE):
@@ -21,4 +21,5 @@ snapshot_download(MODEL_NAME, local_dir=MODEL_CACHE)
 vision_encoder = VisionEncoder(MODEL_CACHE).to("cuda")
 text_model = TextModel(MODEL_CACHE).to("cuda")
 
-model.save_pretrained(MODEL_CACHE)
+vision_encoder.save_pretrained(MODEL_CACHE)
+text_model.save_pretrained(MODEL_CACHE)

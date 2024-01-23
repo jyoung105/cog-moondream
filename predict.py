@@ -10,7 +10,7 @@ from threading import Thread
 # import hashlib
 import torch
 from huggingface_hub import snapshot_download
-from models import VisionEncoder, TextModel
+from script.models import VisionEncoder, TextModel
 from transformers import TextIteratorStreamer
 
 MODEL_NAME = "vikhyatk/moondream1"
@@ -56,9 +56,7 @@ class Predictor(BasePredictor):
         for new_text in streamer:
             buffer += new_text
             if len(buffer) > 1:
-                yield re.sub("<$", "", re.sub("END$", "", buffer)
-
-        return result
+                yield re.sub("<$", "", re.sub("END$", "", buffer))
     
     # def cached_vision_encoder(image):
     #     # Calculate checksum of the image
