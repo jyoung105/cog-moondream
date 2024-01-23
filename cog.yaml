@@ -1,0 +1,15 @@
+build:
+  gpu: true
+  cuda: "11.7"
+  python_version: "3.8"
+  python_packages:
+    - accelerate==0.25.0
+    - huggingface-hub==0.20.1
+    - Pillow==10.1.0
+    - torch==2.1.2
+    - torchvision==0.16.2
+    - transformers==4.36.2
+    - einops==0.7.0
+  run:
+    - curl -o /usr/local/bin/pget -L "https://github.com/replicate/pget/releases/download/v0.0.1/pget" && chmod +x /usr/local/bin/pget
+predict: "predict.py:Predictor"
