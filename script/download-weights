@@ -18,8 +18,8 @@ if not os.path.exists(MODEL_CACHE):
 
 snapshot_download(MODEL_NAME, local_dir=MODEL_CACHE)
     
-vision_encoder = VisionEncoder(MODEL_CACHE).to("cuda")
-text_model = TextModel(MODEL_CACHE).to("cuda")
+vision_encoder = VisionEncoder(MODEL_CACHE)
+text_model = TextModel(MODEL_CACHE)
 
 vision_encoder.save_pretrained(MODEL_CACHE)
 text_model.save_pretrained(MODEL_CACHE)
