@@ -18,7 +18,7 @@ MODEL_NAME = "vikhyatk/moondream1"
 MODEL_CACHE = "model-cache"
 
 if torch.cuda.is_available():
-    DEVICE = "cuda"
+    DEVICE = "cuda:0"
     DTYPE = torch.float16
 else:
     DEVICE = "cpu"
