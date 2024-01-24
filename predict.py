@@ -7,24 +7,38 @@ import os
 import time
 import re
 from threading import Thread
+from PIL import Image
 # import hashlib
 import torch
 from huggingface_hub import snapshot_download
-from script.models import VisionEncoder, TextModel
+from models import VisionEncoder, TextModel
 from transformers import TextIteratorStreamer
 
 MODEL_NAME = "vikhyatk/moondream1"
 MODEL_CACHE = "model-cache"
 
+if torch.cuda.is_available():
+    DEVICE = "cuda"
+    DTYPE = torch.float16
+else:
+    DEVICE = "cpu"
+    DTYPE = torch.float32
+
 class Predictor(BasePredictor):
+     
     def setup(self) -> None:
         """Load the model into memory to make running multiple predictions efficient"""
+        
         start = time.time()
         print("Loading pipeline...")
         
-        snapshot_download(MODEL_NAME, local_dir=MODEL_CACHE)       
-        vision_encoder = VisionEncoder(MODEL_CACHE).to("cuda")
-        text_model = TextModel(MODEL_CACHE).to("cuda")
+        if os.path.exists(MODEL_CACHE) is False:
+            snapshot_download(MODEL_NAME, local_dir=MODEL_CACHE)      
+        # model_path = snapshot_download(MODEL_NAME, local_dir=MODEL_CACHE)  
+        self.vision_encoder = VisionEncoder(MODEL_CACHE).to(DEVICE, dtype=DTYPE)
+        self.text_model = TextModel(MODEL_CACHE).to(DEVICE, dtype=DTYPE)
+        # self.vision_encoder = VisionEncoder(model_path).to(DEVICE, dtype=DTYPE)
+        # self.text_model = TextModel(model_path).to(DEVICE, dtype=DTYPE)
 
         print("setup took: ", time.time() - start)
 
@@ -35,7 +49,7 @@ class Predictor(BasePredictor):
         prompt: str = Input(description="Input prompt"),
         agree_to_research_only: bool = Input(
             description="You must agree to use this model only for research. It is not for commercial use.",
-            default=False,
+            default=True,
         ),
     ) -> str:
         """Run a single prediction on the model"""
@@ -44,19 +58,24 @@ class Predictor(BasePredictor):
                 "You must agree to use this model for research-only, you cannot use this model for commercial purpose."
             )
         
-        streamer = TextIteratorStreamer(text_model.tokenizer, skip_special_tokens=True)    
-        image_vec = vision_encoder(image).to("cpu", dtype=torch.float16)     
-        generation_kwargs = dict(
-            image_embeds = image_vec.to("cuda"), question=prompt, streamer=streamer
-        )
-        thread = Thread(target=text_model.answer_question, kwargs=generation_kwargs)
-        thread.start()
+        # streamer = TextIteratorStreamer(self.text_model.tokenizer, skip_special_tokens=True)    
+        img = Image.open(image)
+        image_embeds = self.vision_encoder(img).to(DEVICE, dtype=DTYPE)
+        # generation_kwargs = dict(
+        #     image_embeds = image_embeds, question=prompt, streamer=streamer
+        # )
+        # thread = Thread(target=self.text_model.answer_question, kwargs=generation_kwargs)
+        # thread.start()
         
-        buffer = ""
-        for new_text in streamer:
-            buffer += new_text
-            if len(buffer) > 1:
-                yield re.sub("<$", "", re.sub("END$", "", buffer))
+        # buffer = ""
+        # for new_text in streamer:
+        #     buffer += new_text
+        #     if len(buffer) > 1:
+        #         output = re.sub("<$", "", re.sub("END$", "", buffer))          
+        # output.strip()
+        output = self.text_model.answer_question(image_embeds, prompt).strip()
+        
+        return output
     
     # def cached_vision_encoder(image):
     #     # Calculate checksum of the image

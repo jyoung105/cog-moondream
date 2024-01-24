@@ -6,7 +6,6 @@ import sys
 import torch
 from huggingface_hub import snapshot_download
 from models import VisionEncoder, TextModel
-sys.path.extend(['/moondream'])
 
 # append project directory to path so predict.py can be imported
 sys.path.append('.')
@@ -20,6 +19,3 @@ snapshot_download(MODEL_NAME, local_dir=MODEL_CACHE)
     
 vision_encoder = VisionEncoder(MODEL_CACHE)
 text_model = TextModel(MODEL_CACHE)
-
-vision_encoder.save_pretrained(MODEL_CACHE)
-text_model.save_pretrained(MODEL_CACHE)

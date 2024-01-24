@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 import transformers
 from transformers import CodeGenTokenizerFast as Tokenizer
 from accelerate import init_empty_weights, load_checkpoint_and_dispatch
@@ -9,7 +10,7 @@ import re
 transformers.logging.set_verbosity_error()
 
 
-class TextModel:
+class TextModel(nn.Module):
     def __init__(self, model_path: str = "model") -> None:
         super().__init__()
         self.tokenizer = Tokenizer.from_pretrained(f"{model_path}/tokenizer")
@@ -22,6 +23,7 @@ class TextModel:
             self.model,
             f"{model_path}/text_model.pt",
             device_map={"": "cpu"},
+            dtype=torch.float16,
         )
 
         self.text_emb = self.model.get_input_embeddings()
