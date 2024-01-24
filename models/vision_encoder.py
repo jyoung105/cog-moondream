@@ -15,7 +15,7 @@ from torchvision.transforms.v2 import (
 class VisionEncoder(nn.Module):
     def __init__(self, model_path: str = "model") -> None:
         super().__init__()
-        self.model = torch.jit.load(f"{model_path}/vision.pt").to("cpu", dtype=torch.float32)
+        self.model = torch.jit.load(f"{model_path}/vision.pt").to("cuda:0", dtype=torch.float16)
         self.preprocess = Compose(
             [
                 Resize(size=(384, 384), interpolation=InterpolationMode.BICUBIC),
@@ -33,5 +33,5 @@ class VisionEncoder(nn.Module):
                 image_vec, "b c (h p1) (w p2) -> b (h w) (c p1 p2)", p1=14, p2=14
             )
             
-            image_vec = image_vec.to("cpu", dtype=torch.float32)
+            image_vec = image_vec.to("cuda:0", dtype=torch.float16)
             return self.model(image_vec)
