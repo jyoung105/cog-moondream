@@ -22,7 +22,7 @@ class TextModel(nn.Module):
         self.model = load_checkpoint_and_dispatch(
             self.model,
             f"{model_path}/text_model.pt",
-            device_map={"": "cuda:0"},
+            device_map={"": "cpu"},
             dtype=torch.float16,
         )
 
