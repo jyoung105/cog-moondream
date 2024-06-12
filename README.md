@@ -3,9 +3,9 @@
 
 # vikhyat/Moondream Cog model
 
-https://replicate.com/jyoung105/moondream
+https://replicate.com/jyoung105/cog-moondream
 
-This is an implementation of [vikhyat/Moondream](https://github.com/vikhyat/Moondream) as a [Cog](https://github.com/replicate/cog) model.
+This is an implementation of [vikhyat/Moondream](https://github.com/vikhyat/moondream) as a [Cog](https://github.com/replicate/cog) model.
 
 ## License
 
