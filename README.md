@@ -9,7 +9,7 @@ This is an implementation of [vikhyat/Moondream](https://github.com/vikhyat/moon
 
 ## License
 
-The model is release for research purposes only, commercial use is not allowed.
+Apache License 2.0
 
 ## Development
 
