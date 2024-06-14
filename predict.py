@@ -80,7 +80,7 @@ class Predictor(BasePredictor):
         img = Image.open(image)
         labels = candidate_labels.split(",")
         classification = self.classifier(img, candidate_labels=labels)
-        output1 = labels[np.argmax(np.array([list(idx.values()) for idx in classification]).flatten()[0].astype(np.float64))]
+        output1 = labels[np.argmax(np.transpose(np.array([list(idx.values()) for idx in classification]))[0].astype(np.float64))]
         
         enc_image = self.model.encode_image(img)
         output2 = self.model.answer_question(enc_image, "Describe this image.", self.tokenizer)
