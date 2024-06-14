@@ -4,25 +4,26 @@
 from cog import BasePredictor, Input, Path
 
 import os
+import sys
+
 import time
-import re
-from threading import Thread
+import numpy as np
 from PIL import Image
-# import hashlib
+
 import torch
-from huggingface_hub import snapshot_download
-from models import VisionEncoder, TextModel
-from transformers import TextIteratorStreamer
+from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
 
-MODEL_NAME = "vikhyatk/moondream1"
+# Deal with PIL.Image.DecompressionBombError
+Image.MAX_IMAGE_PIXELS = None
+
+# GPU global variables
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+DTYPE = torch.float16 if str(DEVICE).__contains__("cuda") else torch.float32
+
+# model global variables
+MODEL_NAME = "vikhyatk/moondream2"
+REVISION = "2024-05-20"
 MODEL_CACHE = "model-cache"
-
-if torch.cuda.is_available():
-    DEVICE = "cuda:0"
-    DTYPE = torch.float16
-else:
-    DEVICE = "cpu"
-    DTYPE = torch.float32
 
 class Predictor(BasePredictor):
      
@@ -30,64 +31,62 @@ class Predictor(BasePredictor):
         """Load the model into memory to make running multiple predictions efficient"""
         
         start = time.time()
-        print("Loading pipeline...")
-        
-        if os.path.exists(MODEL_CACHE) is False:
-            snapshot_download(MODEL_NAME, local_dir=MODEL_CACHE)      
-        # model_path = snapshot_download(MODEL_NAME, local_dir=MODEL_CACHE)  
-        self.vision_encoder = VisionEncoder(MODEL_CACHE).to(DEVICE, dtype=DTYPE)
-        self.text_model = TextModel(MODEL_CACHE).to(DEVICE, dtype=DTYPE)
-        # self.vision_encoder = VisionEncoder(model_path).to(DEVICE, dtype=DTYPE)
-        # self.text_model = TextModel(model_path).to(DEVICE, dtype=DTYPE)
+        print("[~] Loading pipeline...")
 
-        print("setup took: ", time.time() - start)
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            MODEL_NAME, 
+            revision=REVISION
+        )
+        self.model = AutoModelForCausalLM.from_pretrained(
+            MODEL_NAME, 
+            trust_remote_code=True, 
+            revision=REVISION,
+            torch_dtype=torch.float16, 
+            attn_implementation="flash_attention_2"
+        ).to(DEVICE)
+        self.model.eval()
+        
+        self.classifier = pipeline(
+            task="zero-shot-image-classification", 
+            model="google/siglip-so400m-patch14-384",
+            device=0
+        )
+
+        print("Setup took: ", time.time() - start)
 
     @torch.inference_mode()
     def predict(
         self,
-        image: Path = Input(description="Input image"),
-        prompt: str = Input(description="Input prompt"),
-        agree_to_research_only: bool = Input(
-            description="You must agree to use this model only for research. It is not for commercial use.",
-            default=True,
+        image: Path = Input(
+            description="Input image",
+            default=None,
+        ),
+        prompt: str = Input(
+            description="Input prompt",
+            default="Describe this image in one sentence. ",
+        ),
+        candidate_labels: str = Input(
+            description="Candidate labels separated by commas",
+            default="photo, illustration, vector graphic, 3d render"
         ),
     ) -> str:
         """Run a single prediction on the model"""
-        if not agree_to_research_only:
-            raise Exception(
-                "You must agree to use this model for research-only, you cannot use this model for commercial purpose."
-            )
+        start1 = time.time()
         
-        # streamer = TextIteratorStreamer(self.text_model.tokenizer, skip_special_tokens=True)    
+        if prompt is None or image is None:
+            msg = "No input, Save money"
+            return msg
+        
         img = Image.open(image)
-        image_embeds = self.vision_encoder(img).to(DEVICE, dtype=DTYPE)
-        # generation_kwargs = dict(
-        #     image_embeds = image_embeds, question=prompt, streamer=streamer
-        # )
-        # thread = Thread(target=self.text_model.answer_question, kwargs=generation_kwargs)
-        # thread.start()
+        labels = candidate_labels.split(",")
+        classification = self.classifier(img, candidate_labels=labels)
+        output1 = labels[np.argmax(np.array([list(idx.values()) for idx in classification]).flatten()[0].astype(np.float64))]
         
-        # buffer = ""
-        # for new_text in streamer:
-        #     buffer += new_text
-        #     if len(buffer) > 1:
-        #         output = re.sub("<$", "", re.sub("END$", "", buffer))          
-        # output.strip()
-        output = self.text_model.answer_question(image_embeds, prompt).strip()
+        enc_image = self.model.encode_image(img)
+        output2 = self.model.answer_question(enc_image, "Describe this image.", self.tokenizer)
+        
+        output = ", ".join([output1, output2])
+        
+        print("Finish generation in " + str(time.time()-start1) + " secs.")
         
         return output
-    
-    # def cached_vision_encoder(image):
-    #     # Calculate checksum of the image
-    #     image_hash = hashlib.sha256(image.tobytes()).hexdigest()
-
-    #     # Check if `image_encoder_cache/{image_hash}.pt` exists, if so load and return it.
-    #     # Otherwise, save the encoded image to `image_encoder_cache/{image_hash}.pt` and return it.
-    #     cache_path = f"image_encoder_cache/{image_hash}.pt"
-    #     if os.path.exists(cache_path):
-    #         return torch.load(cache_path).to("cuda")
-    #     else:
-    #         image_vec = vision_encoder(image).to("cpu", dtype=torch.float16)
-    #         os.makedirs("image_encoder_cache", exist_ok=True)
-    #         torch.save(image_vec, cache_path)
-    #         return image_vec.to("cuda")
