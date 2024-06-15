@@ -4,15 +4,16 @@
 # vikhyat/Moondream for Cog (Replicate)
 
 https://replicate.com/jyoung105/cog-moondream
+
 This is an implementation of [vikhyat/Moondream](https://github.com/vikhyat/moondream) as a [Cog](https://github.com/replicate/cog) model.
 
-## License
+### License
 
-Apache License 2.0
+- Apache License 2.0
 
-## Basic Usage
+### Basic Usage
 
-Run a prediction
+- Run a prediction
 
 ```bash
     cog predict -i image=@example0.png -i prompt="Explain it in one sentence."
